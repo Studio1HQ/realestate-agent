@@ -1,101 +1,127 @@
-import Image from "next/image";
+'use client'
+
+import { useProperties } from "@/hooks/use-properties";
+import { CopilotChat } from "@copilotkit/react-ui";
+import { GoogleMap, LoadScript, Marker, InfoWindow } from '@react-google-maps/api';
+import { useState, useRef } from "react";
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const [isOpenInfoWindow, setIsOpenInfoWindow] = useState(false);
+  const { propOnMap } = useProperties();
+  const defaultCenter = propOnMap
+    ? { lat: propOnMap.Latitude, lng: propOnMap.Longitude }
+    : { lat: 40.7128, lng: -74.0060 };
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+  const containerStyle = {
+    width: '100%',
+    height: '100%'
+  };
+
+  // We'll store the Marker reference so the InfoWindow can anchor to it
+  const markerRef = useRef<any>(null);
+
+  return (
+    <div className="flex flex-row w-full min-h-full">
+      {/* Map Area */}
+      <div className="flex-1 p-1 min-h-screen">
+        <LoadScript googleMapsApiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string}>
+          <GoogleMap
+            mapContainerStyle={containerStyle}
+            center={defaultCenter}
+            zoom={propOnMap ? 15 : 1}
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+            {propOnMap && (
+              <Marker
+                position={defaultCenter}
+                title={`${propOnMap.Rent} AED ${propOnMap.Frequency}`}
+                onClick={() => setIsOpenInfoWindow(true)}
+                onLoad={(marker) => (markerRef.current = marker)}
+              />
+            )}
+
+            {isOpenInfoWindow && propOnMap && Object.keys(propOnMap.placeData).length !== 0 && (
+              <InfoWindow
+                anchor={markerRef.current}
+                onCloseClick={() => setIsOpenInfoWindow(false)}
+              >
+                <div className="max-w-xs bg-white p-4 rounded shadow-lg text-black overflow-hidden font-sans">
+                  {propOnMap.placeData.displayName && (
+                    <h1 className="text-xl font-bold mb-2">{propOnMap.placeData.displayName}</h1>
+                  )}
+                  {propOnMap.placeData.formattedAddress && (
+                    <p className="text-sm text-gray-700 mb-2">{propOnMap.placeData.formattedAddress}</p>
+                  )}
+                  <p className="text-sm text-gray-800 mb-2">
+                    <strong>Rent:</strong> {propOnMap.Rent} AED {propOnMap.Frequency}
+                  </p>
+                  {propOnMap.placeData.rating !== undefined && (
+                    <p className="text-sm text-gray-800 mb-2">
+                      <strong>Rating:</strong> {propOnMap.placeData.rating}
+                    </p>
+                  )}
+                  {propOnMap.placeData.formattedPhoneNumber && (
+                    <p className="text-sm text-gray-800 mb-2">
+                      <strong>Phone:</strong> {propOnMap.placeData.formattedPhoneNumber}
+                    </p>
+                  )}
+                  {propOnMap.placeData.website && (
+                    <p className="text-sm text-gray-800 mb-2">
+                      <strong>Website:</strong>{' '}
+                      <a
+                        href={propOnMap.placeData.website}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-500 underline"
+                      >
+                        {propOnMap.placeData.website}
+                      </a>
+                    </p>
+                  )}
+                  {propOnMap.placeData.businessStatus && (
+                    <p className="text-sm text-gray-800 mb-2">
+                      <strong>Status:</strong> {propOnMap.placeData.businessStatus}
+                    </p>
+                  )}
+                  {propOnMap.placeData.openingHours && propOnMap.placeData.openingHours.weekday_text && (
+                    <div className="mb-2">
+                      <strong className="text-sm text-gray-800">Opening Hours:</strong>
+                      <ul className="list-disc list-inside text-xs text-gray-700 mt-1">
+                        {propOnMap.placeData.openingHours.weekday_text.map((day: any, index: number) => (
+                          <li key={index}>{day}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {propOnMap.placeData.reviews && (
+                    <div className="mb-2">
+                      <strong className="text-sm text-gray-800">Reviews:</strong>
+                      <ul className="list-disc list-inside text-xs text-gray-700 mt-1">
+                        {propOnMap.placeData.reviews.map((review: any, idx: number) => (
+                          <li key={idx}>
+                            <span className="font-bold">{review.author_name}</span>: {review.text}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              </InfoWindow>
+            )}
+          </GoogleMap>
+        </LoadScript>
+      </div>
+
+      {/* Chat Component */}
+      <div className="w-1/4 border-2 mt-2 min-h-screen h-full">
+        <CopilotChat
+          labels={{
+            title: "Your Assistant",
+            initial: "Hi! 👋 I am a Real Estate Agent who can help you find properties in Dubai. Ask away!",
+          }}
+          showResponseButton={true}
+          className="min-h-screen max-h-screen"
+        />
+      </div>
     </div>
   );
 }
